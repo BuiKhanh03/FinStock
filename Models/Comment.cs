@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 
 namespace api.Models
 {
@@ -15,5 +16,7 @@ namespace api.Models
         public DateTime CreatedOn { get; set; } = DateTime.Now;
         public int? StockId { get; set; }
         public Stock? Stock { get; set; }
+        public string AppUserId { get; set;}
+        public AppUser AppUser { get; set; }
     }
 }

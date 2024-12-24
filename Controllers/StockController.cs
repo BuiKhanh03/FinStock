@@ -31,16 +31,9 @@ namespace api.Controllers
         [Authorize]
         public async Task<IActionResult> GetAll([FromQuery] QueryObject query)
         {
-            try
-            {
-                var stocks = await _stockRepo.GetAllAsync(query);
-                var stockDto = stocks.Select(s => s.ToStockDto());
-                return Ok(stockDto);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"An error occurred: {ex.Message}");
-            }
+            var stocks = await _stockRepo.GetAllAsync(query);
+            var stockDto = stocks.Select(s => s.ToStockDto()).ToList();
+            return Ok(stockDto);
         }
 
         // GET: api/stock/{id}
