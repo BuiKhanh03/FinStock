@@ -95,6 +95,7 @@ builder.Services.AddControllers().AddNewtonsoftJson(options => { options.Seriali
 builder.Services.AddScoped<IStockRepository, StockRepository>();
 builder.Services.AddScoped<ICommentRepository, CommentRepository>();
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IPortfolioRepository, PortRepository>();
 
 var app = builder.Build();
 

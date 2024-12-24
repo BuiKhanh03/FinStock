@@ -22,7 +22,7 @@ namespace api.Controllers
         {
             _userManager = userManager;
             _tokenService = tokenService;
-             _signinManager = signInManager;
+            _signinManager = signInManager;
         }
 
         [HttpPost("login")]
@@ -34,6 +34,7 @@ namespace api.Controllers
             }
             var user = await _userManager.Users.FirstOrDefaultAsync(x => x.UserName == loginDto.Username.ToLower());
             if (user == null) return Unauthorized("Invalid username");
+            // Check if password matches
             var result = await _signinManager.CheckPasswordSignInAsync(user, loginDto.Password, false);
             if (!result.Succeeded) return Unauthorized("Username not found or password incorrect");
             return Ok(new NewUserDto
