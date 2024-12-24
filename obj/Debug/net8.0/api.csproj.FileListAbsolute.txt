@@ -139,3 +139,6 @@ D:\Net\core\FinStark\api\bin\Debug\net8.0\Microsoft.AspNetCore.JsonPatch.dll
 D:\Net\core\FinStark\api\bin\Debug\net8.0\Microsoft.AspNetCore.Mvc.NewtonsoftJson.dll
 D:\Net\core\FinStark\api\bin\Debug\net8.0\Newtonsoft.Json.dll
 D:\Net\core\FinStark\api\bin\Debug\net8.0\Newtonsoft.Json.Bson.dll
+D:\Net\core\FinStark\api\obj\Debug\net8.0\api.sourcelink.json
+D:\Net\core\FinStark\api\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+D:\Net\core\FinStark\api\bin\Debug\net8.0\Microsoft.AspNetCore.Identity.EntityFrameworkCore.dll
