@@ -51,13 +51,13 @@ namespace api.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "1e3bf869-b2ff-43d5-81e6-47864b5c88d8",
+                            Id = "e187bd18-4f91-48cb-967f-d295f1e21d3b",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         },
                         new
                         {
-                            Id = "251cc502-e47d-4423-99c7-0ada480c8636",
+                            Id = "0ad4941b-6136-4914-9f7c-c7ca46820e2d",
                             Name = "User",
                             NormalizedName = "USER"
                         });
@@ -186,6 +186,9 @@ namespace api.Migrations
                         .HasColumnType("nvarchar(256)");
 
                     b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
                     b.Property<bool>("LockoutEnabled")
