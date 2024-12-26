@@ -20,14 +20,16 @@ namespace api.Controllers
         private readonly UserManager<AppUser> _userManager;
         private readonly ITokenService _tokenService;
         public readonly IEmailService _emailService;
+        public readonly IAuthService _authService;
         private readonly SignInManager<AppUser> _signinManager;
         public AccountController(UserManager<AppUser> userManager, ITokenService tokenService, IEmailService emailService
-, SignInManager<AppUser> signInManager)
+, SignInManager<AppUser> signInManager, IAuthService authService)
         {
             _userManager = userManager;
             _tokenService = tokenService;
             _emailService = emailService;
             _signinManager = signInManager;
+            _authService = authService;
         }
 
         [HttpPost("login")]
@@ -39,22 +41,25 @@ namespace api.Controllers
             }
             var user = await _userManager.Users.FirstOrDefaultAsync(x => x.UserName == loginDto.Username.ToLower());
             if (user == null) return Unauthorized("Invalid username");
-            // Check if password matches
-            var result = await _signinManager.CheckPasswordSignInAsync(user, loginDto.Password, false);
-            if (!result.Succeeded) return Unauthorized("Username not found or password incorrect");
-            // Check if the email is confirmed
-            if (!user.EmailConfirmed) return Unauthorized("Please confirm your email before logging in.");
-            return Ok(new NewUserDto
+            var result = await _authService.LoginAsync(user, loginDto.Password);
+
+            if (result == "username") return Unauthorized("Username not found or password incorrect");
+            if (result == "email") return Unauthorized("Please confirm your email before logging in.");
+            var userLogIn = new LoginResponseDto
             {
-                UserName = user.UserName,
-                Email = user.Email,
-                Token = _tokenService.CreateToken(user)
-            });
+                IsLogedIn = true,
+                JwtToken = _tokenService.CreateToken(user),
+                RefreshToken = result
+            };
+
+
+
+            return Ok(userLogIn);
         }
 
         [HttpGet("confirm-email")]
         [ApiExplorerSettings(IgnoreApi = true)]
-        public async Task<IActionResult> ConfirmEmail([FromBody] string email)
+        public async Task<IActionResult> ConfirmEmail(string email)
         {
 
             var result = await _emailService.ConfirmEmailAsync(email);
@@ -73,7 +78,6 @@ namespace api.Controllers
                 {
                     UserName = registerDto.UserName,
                     Email = registerDto.Email,
-                    IsActive = false
                 };
                 var createdUser = await _userManager.CreateAsync(appUser, registerDto.Password);
                 if (createdUser.Succeeded)
@@ -106,7 +110,7 @@ namespace api.Controllers
             }
         }
 
-        [HttpPost("/forgotPassword")]
+        [HttpPost("forgotPassword")]
         public async Task<IActionResult> ForgotPassword([FromBody] PasswordDto passwordDto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -134,6 +138,18 @@ namespace api.Controllers
             if (result == null) return BadRequest("Failed to create new password");
             await _emailService.SendEmailAsync(email, "Your new password", $"Your password has been reset. Your new password is: {result}");
             return Ok("Password has been reset successfully.");
+        }
+
+        [HttpPost("RefreshToken")]
+        public async Task<IActionResult> RefreshTokenAsync(RefreshTokenModel model)
+        {
+            var loginResult = await _authService.RefreshTokenAsync(model);
+            Console.WriteLine("hi" + loginResult.IsLogedIn);
+            if (loginResult.IsLogedIn)
+            {
+                return Ok(loginResult);
+            }
+            return Unauthorized();
         }
     }
 }
