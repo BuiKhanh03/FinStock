@@ -19,13 +19,10 @@ namespace api.Services
     public class EmailService : IEmailService
     {
         private readonly IConfiguration _config;
-        private readonly UserManager<AppUser> _userManager;
-        private readonly ApplicationDBContext _context;
-        public EmailService(IConfiguration config, UserManager<AppUser> userManager, ApplicationDBContext context)
+
+        public EmailService(IConfiguration config)
         {
             _config = config;
-            _userManager = userManager;
-            _context = context;
         }
         public async Task SendEmailAsync(string email, string subject, string htmlBody)
         {
@@ -72,41 +69,6 @@ namespace api.Services
             }
         }
 
-        public async Task<string> ConfirmEmailAsync(string email)
-        {
-            var user = await _userManager.Users.FirstOrDefaultAsync(x => x.Email == email.ToLower());
-            if (user == null) return "Invalid email";
-            user.EmailConfirmed = true;
-            await _context.SaveChangesAsync();
-            return "Email confirmed successfully";
-        }
-
-        public async Task<string> ForgotPasswordAsync(string email)
-        {
-            var user = await _userManager.FindByEmailAsync(email);
-            if (user == null) return null;
-            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-            return token;
-        }
-
-        public async Task<string> NewPassword(string email, string token)
-        {
-            var user = await _userManager.FindByEmailAsync(email);
-            var newPassWord = GenerateRandomPassword();
-            var result = await _userManager.ResetPasswordAsync(user, token, newPassWord);
-            if (!result.Succeeded) return null;
-            return newPassWord;
-        }
-
-        private string GenerateRandomPassword()
-        {
-            var random = new Random();
-            const string validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890!@#$%^&*()";
-            var length = 12; 
-            var password = new string(Enumerable.Range(0, length)
-                                                .Select(x => validChars[random.Next(validChars.Length)])
-                                                .ToArray());
-            return password;
-        }
+      
     }
 }

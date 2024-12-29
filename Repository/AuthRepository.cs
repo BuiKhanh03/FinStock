@@ -12,6 +12,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using api.Data;
 
 
 namespace api.Services
@@ -22,39 +23,79 @@ namespace api.Services
         private readonly IConfiguration _config;
         private readonly ITokenService _tokenService;
         private readonly SignInManager<AppUser> _signinManager;
+                private readonly ApplicationDBContext _context;
 
-        public AuthRepository(UserManager<AppUser> userManager, IConfiguration config, ITokenService tokenService, SignInManager<AppUser> signInManager)
+        public AuthRepository(UserManager<AppUser> userManager, IConfiguration config, ITokenService tokenService, SignInManager<AppUser> signInManager, ApplicationDBContext context)
         {
             _userManager = userManager;
             _config = config;
             _tokenService = tokenService;
             _signinManager = signInManager;
+             _context = context;
         }
 
         public async Task<string> LoginAsync(AppUser appUser, string pwd)
         {
+            var identityUser = await _userManager.FindByEmailAsync(appUser.Email);
             // Check if password matches
             var result = await _signinManager.CheckPasswordSignInAsync(appUser, pwd, false);
+            if (identityUser is null)
+            {
+                return "username";
+            }
             if (!result.Succeeded) return "username";
             // Check if the email is confirmed
             if (!appUser.EmailConfirmed) return "email";
             var refreshToken = this.GenerateRefreshTokenString();
+            identityUser.RefreshToken = refreshToken;
+            identityUser.RefreshTokenExpiry = DateTime.Now.AddHours(12);
+            await _userManager.UpdateAsync(identityUser);
             return refreshToken;
         }
+        public async Task<string> ChangePasswordUSerAsync(ChangePassword changePassword, ClaimsPrincipal user)
+        {
+            try
+            {
+                var appUser = await _userManager.GetUserAsync(user);
+                if (appUser == null)
+                {
+                    return "User not found";
+                }
+                Console.WriteLine(appUser);
+                var result = await _userManager.ChangePasswordAsync(appUser, changePassword.CurrentPassword, changePassword.NewPassword);
+
+                if (result.Succeeded)
+                {
+                    return "Password changed successfully.";
+                }
+            }
+            catch (System.Exception)
+            {
+
+                throw;
+            }
+
+            return "Wrong password";
+        }
+
 
 
         public async Task<LoginResponseDto> RefreshTokenAsync(RefreshTokenModel model)
         {
-            var principal = GetTokenPrincipal(model.JwtToken);
-            Console.WriteLine(principal.Identity.Name);
-
+            var principal = this.GetTokenPrincipal(model.JwtToken);
             var response = new LoginResponseDto();
-            if (principal?.FindFirst("given_name")?.Value is null)
+            if (principal == null || principal.Identity == null)
+            {
+                return response;
+            }
+            var givenName = principal.FindFirstValue("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname");
+            if (givenName is null)
             {
                 return response;
             }
 
-            var identityUser = await _userManager.FindByNameAsync(principal?.FindFirst("given_name").Value);
+
+            var identityUser = await _userManager.FindByNameAsync(givenName);
 
             if (identityUser is null || identityUser.RefreshToken != model.RefreshToken || identityUser.RefreshTokenExpiry < DateTime.Now)
                 return response;
@@ -91,10 +132,48 @@ namespace api.Services
                 IssuerSigningKey = securityKey,
                 ValidateLifetime = false,
                 ValidateActor = false,
-                ValidateIssuer = false,
-                ValidateAudience = false,
+                ValidateIssuer = true,
+                ValidIssuer = _config["JWT:Issuer"],
+                ValidateAudience = true,
+                ValidAudience = _config["JWT:Audience"],
             };
             return new JwtSecurityTokenHandler().ValidateToken(token, validation, out _);
+        }
+        public async Task<string> ConfirmEmailAsync(string email)
+        {
+            var user = await _userManager.Users.FirstOrDefaultAsync(x => x.Email == email.ToLower());
+            if (user == null) return "Invalid email";
+            user.EmailConfirmed = true;
+            await _context.SaveChangesAsync();
+            return "Email confirmed successfully";
+        }
+
+        public async Task<string> ForgotPasswordAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null) return null;
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            return token;
+        }
+
+        public async Task<string> NewPasswordAsync(string email, string token)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            var newPassWord = GenerateRandomPassword();
+            var result = await _userManager.ResetPasswordAsync(user, token, newPassWord);
+            if (!result.Succeeded) return null;
+            return newPassWord;
+        }
+
+        private string GenerateRandomPassword()
+        {
+            var random = new Random();
+            const string validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890!@#$%^&*()";
+            var length = 12;
+            var password = new string(Enumerable.Range(0, length)
+                                                .Select(x => validChars[random.Next(validChars.Length)])
+                                                .ToArray());
+            return password;
         }
     }
 }

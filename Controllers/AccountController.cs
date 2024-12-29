@@ -10,6 +10,7 @@ using api.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using api.Services;
 using System.Runtime.CompilerServices;
+using Microsoft.AspNetCore.Authorization;
 
 namespace api.Controllers
 {
@@ -51,9 +52,6 @@ namespace api.Controllers
                 JwtToken = _tokenService.CreateToken(user),
                 RefreshToken = result
             };
-
-
-
             return Ok(userLogIn);
         }
 
@@ -62,7 +60,7 @@ namespace api.Controllers
         public async Task<IActionResult> ConfirmEmail(string email)
         {
 
-            var result = await _emailService.ConfirmEmailAsync(email);
+            var result = await _authService.ConfirmEmailAsync(email);
             if (result == "Invalid email") return BadRequest("Cannot confirm your email");
             return Ok(result);
         }
@@ -116,7 +114,7 @@ namespace api.Controllers
             if (!ModelState.IsValid) return BadRequest(ModelState);
             try
             {
-                var tokenReset = await _emailService.ForgotPasswordAsync(passwordDto.Email);
+                var tokenReset = await _authService.ForgotPasswordAsync(passwordDto.Email);
                 if (tokenReset == null) return BadRequest("Invalid Email");
                 // Tạo liên kết xác nhận email và token
                 var confirmationLink = Url.Action("NewPassWord", "Account", new { email = passwordDto.Email, token = tokenReset }, Request.Scheme);
@@ -134,17 +132,37 @@ namespace api.Controllers
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<IActionResult> NewPassword(string email, string token)
         {
-            var result = await _emailService.NewPassword(email, token);
+            var result = await _authService.NewPasswordAsync(email, token);
             if (result == null) return BadRequest("Failed to create new password");
             await _emailService.SendEmailAsync(email, "Your new password", $"Your password has been reset. Your new password is: {result}");
             return Ok("Password has been reset successfully.");
         }
+        [HttpPost("change-password")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword(ChangePassword changePassword)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
-        [HttpPost("RefreshToken")]
+            var result = await _authService.ChangePasswordUSerAsync(changePassword, User);
+
+
+            if (result == "Password changed successfully.")
+            {
+                return Ok(result); 
+            }
+
+            return BadRequest(result); 
+        }
+
+
+
+        [HttpPost("refreshToken")]
         public async Task<IActionResult> RefreshTokenAsync(RefreshTokenModel model)
         {
             var loginResult = await _authService.RefreshTokenAsync(model);
-            Console.WriteLine("hi" + loginResult.IsLogedIn);
             if (loginResult.IsLogedIn)
             {
                 return Ok(loginResult);
