@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using api.Services;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace api.Controllers
 {
@@ -36,16 +37,13 @@ namespace api.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto loginDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
             var user = await _userManager.Users.FirstOrDefaultAsync(x => x.UserName == loginDto.Username.ToLower());
             if (user == null) return Unauthorized("Invalid username");
+             if (!user.EmailConfirmed) return Unauthorized("Please confirm your email before logging in");
             var result = await _authService.LoginAsync(user, loginDto.Password);
-
-            if (result == "username") return Unauthorized("Username not found or password incorrect");
-            if (result == "email") return Unauthorized("Please confirm your email before logging in.");
+            if(result == null)return Unauthorized("Invalid username or password");
             var userLogIn = new LoginResponseDto
             {
                 IsLogedIn = true,
@@ -108,7 +106,7 @@ namespace api.Controllers
             }
         }
 
-        [HttpPost("forgotPassword")]
+        [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] PasswordDto passwordDto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -148,18 +146,17 @@ namespace api.Controllers
 
             var result = await _authService.ChangePasswordUSerAsync(changePassword, User);
 
-
             if (result == "Password changed successfully.")
             {
-                return Ok(result); 
+                return Ok(result);
             }
 
-            return BadRequest(result); 
+            return BadRequest(result);
         }
 
 
 
-        [HttpPost("refreshToken")]
+        [HttpPost("refresh-token")]
         public async Task<IActionResult> RefreshTokenAsync(RefreshTokenModel model)
         {
             var loginResult = await _authService.RefreshTokenAsync(model);

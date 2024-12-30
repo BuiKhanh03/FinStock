@@ -23,7 +23,7 @@ namespace api.Services
         private readonly IConfiguration _config;
         private readonly ITokenService _tokenService;
         private readonly SignInManager<AppUser> _signinManager;
-                private readonly ApplicationDBContext _context;
+        private readonly ApplicationDBContext _context;
 
         public AuthRepository(UserManager<AppUser> userManager, IConfiguration config, ITokenService tokenService, SignInManager<AppUser> signInManager, ApplicationDBContext context)
         {
@@ -31,32 +31,25 @@ namespace api.Services
             _config = config;
             _tokenService = tokenService;
             _signinManager = signInManager;
-             _context = context;
+            _context = context;
         }
 
         public async Task<string> LoginAsync(AppUser appUser, string pwd)
         {
-            var identityUser = await _userManager.FindByEmailAsync(appUser.Email);
-            // Check if password matches
             var result = await _signinManager.CheckPasswordSignInAsync(appUser, pwd, false);
-            if (identityUser is null)
-            {
-                return "username";
-            }
-            if (!result.Succeeded) return "username";
-            // Check if the email is confirmed
-            if (!appUser.EmailConfirmed) return "email";
+            if (!result.Succeeded) return null;
             var refreshToken = this.GenerateRefreshTokenString();
-            identityUser.RefreshToken = refreshToken;
-            identityUser.RefreshTokenExpiry = DateTime.Now.AddHours(12);
-            await _userManager.UpdateAsync(identityUser);
+            appUser.RefreshToken = refreshToken;
+            appUser.RefreshTokenExpiry = DateTime.Now.AddDays(1);
+            await _userManager.UpdateAsync(appUser);
             return refreshToken;
         }
         public async Task<string> ChangePasswordUSerAsync(ChangePassword changePassword, ClaimsPrincipal user)
         {
             try
             {
-                var appUser = await _userManager.GetUserAsync(user);
+                var appUser = await _userManager.FindByEmailAsync(user.FindFirst(ClaimTypes.Email)?.Value);
+                Console.WriteLine(appUser);
                 if (appUser == null)
                 {
                     return "User not found";
@@ -93,7 +86,6 @@ namespace api.Services
             {
                 return response;
             }
-
 
             var identityUser = await _userManager.FindByNameAsync(givenName);
 
