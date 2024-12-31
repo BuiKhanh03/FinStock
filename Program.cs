@@ -12,21 +12,21 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAllOrigins", policy =>
     {
         policy.AllowAnyOrigin()  // Cho phép tất cả các domain (có thể thay bằng một domain cụ thể)
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyMethod()// Cho phép tất cả các phương thức
+              .AllowAnyHeader();// Cho phép tất cả các header
     });
 });
+
+// Add services to the container.
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddControllers();
 
 builder.Services.AddSwaggerGen(option =>
 {
@@ -126,19 +126,19 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuthService, AuthRepository>();
 builder.Services.AddScoped<IPortfolioRepository, PortRepository>();
 builder.Services.AddScoped<IVnPayService, PaymentService>();
+builder.Services.AddScoped<IMomoService, MomoService>();
 
 var app = builder.Build();
-
-// Configure the HTTP request pipeline.
+// Sử dụng Swagger chỉ trong môi trường phát triển
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+// Sử dụng middleware CORS
+app.UseRouting();
 app.UseCors("AllowAllOrigins");
 
-// builder.Services.AddControllers();
 
 app.UseAuthentication();
 app.UseAuthorization();
