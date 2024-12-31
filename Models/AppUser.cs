@@ -8,7 +8,8 @@ namespace api.Models
 {
     public class AppUser : IdentityUser
     {
-        public bool IsActive { get; set; }
+         public string? RefreshToken { get; set; }
+        public DateTime RefreshTokenExpiry { get; set; }
         public List<Portfolio> Portfolios { get; set; } = new List<Portfolio>();
     }
 }

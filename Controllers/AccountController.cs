@@ -10,6 +10,8 @@ using api.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using api.Services;
 using System.Runtime.CompilerServices;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace api.Controllers
 {
@@ -20,44 +22,43 @@ namespace api.Controllers
         private readonly UserManager<AppUser> _userManager;
         private readonly ITokenService _tokenService;
         public readonly IEmailService _emailService;
+        public readonly IAuthService _authService;
         private readonly SignInManager<AppUser> _signinManager;
         public AccountController(UserManager<AppUser> userManager, ITokenService tokenService, IEmailService emailService
-, SignInManager<AppUser> signInManager)
+, SignInManager<AppUser> signInManager, IAuthService authService)
         {
             _userManager = userManager;
             _tokenService = tokenService;
             _emailService = emailService;
             _signinManager = signInManager;
+            _authService = authService;
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto loginDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
             var user = await _userManager.Users.FirstOrDefaultAsync(x => x.UserName == loginDto.Username.ToLower());
             if (user == null) return Unauthorized("Invalid username");
-            // Check if password matches
-            var result = await _signinManager.CheckPasswordSignInAsync(user, loginDto.Password, false);
-            if (!result.Succeeded) return Unauthorized("Username not found or password incorrect");
-            // Check if the email is confirmed
-            if (!user.EmailConfirmed) return Unauthorized("Please confirm your email before logging in.");
-            return Ok(new NewUserDto
+             if (!user.EmailConfirmed) return Unauthorized("Please confirm your email before logging in");
+            var result = await _authService.LoginAsync(user, loginDto.Password);
+            if(result == null)return Unauthorized("Invalid username or password");
+            var userLogIn = new LoginResponseDto
             {
-                UserName = user.UserName,
-                Email = user.Email,
-                Token = _tokenService.CreateToken(user)
-            });
+                IsLogedIn = true,
+                JwtToken = _tokenService.CreateToken(user),
+                RefreshToken = result
+            };
+            return Ok(userLogIn);
         }
 
         [HttpGet("confirm-email")]
         [ApiExplorerSettings(IgnoreApi = true)]
-        public async Task<IActionResult> ConfirmEmail([FromBody] string email)
+        public async Task<IActionResult> ConfirmEmail(string email)
         {
 
-            var result = await _emailService.ConfirmEmailAsync(email);
+            var result = await _authService.ConfirmEmailAsync(email);
             if (result == "Invalid email") return BadRequest("Cannot confirm your email");
             return Ok(result);
         }
@@ -73,7 +74,6 @@ namespace api.Controllers
                 {
                     UserName = registerDto.UserName,
                     Email = registerDto.Email,
-                    IsActive = false
                 };
                 var createdUser = await _userManager.CreateAsync(appUser, registerDto.Password);
                 if (createdUser.Succeeded)
@@ -106,13 +106,13 @@ namespace api.Controllers
             }
         }
 
-        [HttpPost("/forgotPassword")]
+        [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] PasswordDto passwordDto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
             try
             {
-                var tokenReset = await _emailService.ForgotPasswordAsync(passwordDto.Email);
+                var tokenReset = await _authService.ForgotPasswordAsync(passwordDto.Email);
                 if (tokenReset == null) return BadRequest("Invalid Email");
                 // Tạo liên kết xác nhận email và token
                 var confirmationLink = Url.Action("NewPassWord", "Account", new { email = passwordDto.Email, token = tokenReset }, Request.Scheme);
@@ -130,10 +130,41 @@ namespace api.Controllers
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<IActionResult> NewPassword(string email, string token)
         {
-            var result = await _emailService.NewPassword(email, token);
+            var result = await _authService.NewPasswordAsync(email, token);
             if (result == null) return BadRequest("Failed to create new password");
             await _emailService.SendEmailAsync(email, "Your new password", $"Your password has been reset. Your new password is: {result}");
             return Ok("Password has been reset successfully.");
+        }
+        [HttpPost("change-password")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword(ChangePassword changePassword)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var result = await _authService.ChangePasswordUSerAsync(changePassword, User);
+
+            if (result == "Password changed successfully.")
+            {
+                return Ok(result);
+            }
+
+            return BadRequest(result);
+        }
+
+
+
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshTokenAsync(RefreshTokenModel model)
+        {
+            var loginResult = await _authService.RefreshTokenAsync(model);
+            if (loginResult.IsLogedIn)
+            {
+                return Ok(loginResult);
+            }
+            return Unauthorized();
         }
     }
 }
