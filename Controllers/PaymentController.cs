@@ -21,14 +21,23 @@ namespace api.Controllers
             _momoService = momoService;
         }
 
-        [HttpGet("vnpay")]
+        [HttpGet("vnPay")]
         public IActionResult PaymentCallbackVnPay()
         {
             var response = _vnPayService.PaymentExecute(Request.Query);
-
-            return Json(response);
+            // Kiểm tra kết quả thanh toán
+            if (response.VnPayResponseCode == "00")
+            {
+                // Thanh toán thành công
+                // Cập nhật trạng thái đơn hàng hoặc làm gì đó cần thiết
+                return Json(new { status = "success", message = "Payment successful" });
+            }
+            else
+            {
+                // Thanh toán thất bại
+                return Json(new { status = "fail", message = "Payment failed" });
+            }
         }
-
         [HttpGet("momo")]
         public IActionResult PaymentCallbackMoMo()
         {
@@ -42,7 +51,7 @@ namespace api.Controllers
         {
             var url = _vnPayService.CreatePaymentUrl(model, HttpContext);
 
-            return Redirect(url);
+            return Ok(new { paymentUrl = url });
         }
         [HttpPost("momo")]
         [EnableCors("AllowAllOrigins")]

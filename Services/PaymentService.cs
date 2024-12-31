@@ -20,7 +20,7 @@ namespace api.Services
             var timeNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZoneById);
             var tick = DateTime.Now.Ticks.ToString();
             var pay = new VnPayLibrary();
-            var urlCallBack = _config["PaymentCallBack:ReturnUrl"];
+            var urlCallBack = _config["VnPay:ReturnUrl"];
 
             pay.AddRequestData("vnp_Version", _config["Vnpay:Version"]);
             pay.AddRequestData("vnp_Command", _config["Vnpay:Command"]);
@@ -37,14 +37,13 @@ namespace api.Services
 
             var paymentUrl =
                 pay.CreateRequestUrl(_config["Vnpay:BaseUrl"], _config["Vnpay:HashSecret"]);
-
+            
             return paymentUrl;
         }
         public PaymentResponse PaymentExecute(IQueryCollection collections)
         {
             var pay = new VnPayLibrary();
             var response = pay.GetFullResponseData(collections, _config["Vnpay:HashSecret"]);
-
             return response;
         }
     }
