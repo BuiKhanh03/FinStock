@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "ChpTriAqxkQ=",
+  "dgSpecHash": "lno6MArBtVY=",
   "success": true,
   "projectFilePath": "D:\\Net\\core\\FinStark\\api\\api.csproj",
   "expectedPackageFiles": [
@@ -61,6 +61,7 @@
     "C:\\Users\\Buikh\\.nuget\\packages\\microsoft.net.http.headers\\2.2.0\\microsoft.net.http.headers.2.2.0.nupkg.sha512",
     "C:\\Users\\Buikh\\.nuget\\packages\\microsoft.openapi\\1.6.14\\microsoft.openapi.1.6.14.nupkg.sha512",
     "C:\\Users\\Buikh\\.nuget\\packages\\microsoft.sqlserver.server\\1.0.0\\microsoft.sqlserver.server.1.0.0.nupkg.sha512",
+    "C:\\Users\\Buikh\\.nuget\\packages\\microsoft.typescript.msbuild\\5.7.1\\microsoft.typescript.msbuild.5.7.1.nupkg.sha512",
     "C:\\Users\\Buikh\\.nuget\\packages\\microsoft.win32.systemevents\\6.0.0\\microsoft.win32.systemevents.6.0.0.nupkg.sha512",
     "C:\\Users\\Buikh\\.nuget\\packages\\mimekit\\4.9.0\\mimekit.4.9.0.nupkg.sha512",
     "C:\\Users\\Buikh\\.nuget\\packages\\mono.texttemplating\\2.2.1\\mono.texttemplating.2.2.1.nupkg.sha512",

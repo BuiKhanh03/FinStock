@@ -1,4 +1,5 @@
 using api.Data;
+using api.Hubs;
 using api.Interfaces;
 using api.Models;
 using api.Repository;
@@ -16,9 +17,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAllOrigins", policy =>
     {
-        policy.AllowAnyOrigin()  // Cho phép tất cả các domain (có thể thay bằng một domain cụ thể)
+        policy.WithOrigins("http://localhost:3000")  // Cho phép tất cả các domain (có thể thay bằng một domain cụ thể)
               .AllowAnyMethod()// Cho phép tất cả các phương thức
-              .AllowAnyHeader();// Cho phép tất cả các header
+              .AllowAnyHeader()// Cho phép tất cả các header,
+               .AllowCredentials();
     });
 });
 
@@ -27,6 +29,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 
 builder.Services.AddSwaggerGen(option =>
 {
@@ -135,6 +138,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseDefaultFiles();
+app.UseStaticFiles();
 // Sử dụng middleware CORS
 app.UseRouting();
 app.UseCors("AllowAllOrigins");
@@ -143,6 +149,7 @@ app.UseCors("AllowAllOrigins");
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapHub<ChatHub>("/hub");
 app.MapControllers();
 
 app.Run();
