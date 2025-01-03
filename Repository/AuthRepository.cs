@@ -49,12 +49,10 @@ namespace api.Services
             try
             {
                 var appUser = await _userManager.FindByEmailAsync(user.FindFirst(ClaimTypes.Email)?.Value);
-                Console.WriteLine(appUser);
                 if (appUser == null)
                 {
                     return "User not found";
                 }
-                Console.WriteLine(appUser);
                 var result = await _userManager.ChangePasswordAsync(appUser, changePassword.CurrentPassword, changePassword.NewPassword);
 
                 if (result.Succeeded)
@@ -114,23 +112,6 @@ namespace api.Services
             return Convert.ToBase64String(randomNumber);
         }
 
-        private ClaimsPrincipal? GetTokenPrincipal(string token)
-        {
-
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config.GetSection("Jwt:SigningKey").Value));
-
-            var validation = new TokenValidationParameters
-            {
-                IssuerSigningKey = securityKey,
-                ValidateLifetime = false,
-                ValidateActor = false,
-                ValidateIssuer = true,
-                ValidIssuer = _config["JWT:Issuer"],
-                ValidateAudience = true,
-                ValidAudience = _config["JWT:Audience"],
-            };
-            return new JwtSecurityTokenHandler().ValidateToken(token, validation, out _);
-        }
         public async Task<string> ConfirmEmailAsync(string email)
         {
             var user = await _userManager.Users.FirstOrDefaultAsync(x => x.Email == email.ToLower());
@@ -158,6 +139,7 @@ namespace api.Services
         }
 
         private string GenerateRandomPassword()
+
         {
             var random = new Random();
             const string validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890!@#$%^&*()";
@@ -166,6 +148,25 @@ namespace api.Services
                                                 .Select(x => validChars[random.Next(validChars.Length)])
                                                 .ToArray());
             return password;
+        }
+
+
+        private ClaimsPrincipal? GetTokenPrincipal(string token)
+        {
+
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config.GetSection("Jwt:SigningKey").Value));
+
+            var validation = new TokenValidationParameters
+            {
+                IssuerSigningKey = securityKey,
+                ValidateLifetime = false,
+                ValidateActor = false,
+                ValidateIssuer = true,
+                ValidIssuer = _config["JWT:Issuer"],
+                ValidateAudience = true,
+                ValidAudience = _config["JWT:Audience"],
+            };
+            return new JwtSecurityTokenHandler().ValidateToken(token, validation, out _);
         }
     }
 }
