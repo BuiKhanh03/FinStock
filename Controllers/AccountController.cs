@@ -12,6 +12,7 @@ using api.Services;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using api.Mappers;
 
 namespace api.Controllers
 {
@@ -23,15 +24,17 @@ namespace api.Controllers
         private readonly ITokenService _tokenService;
         public readonly IEmailService _emailService;
         public readonly IAuthService _authService;
+        private readonly IAccountRepository _accountRepository;
         private readonly SignInManager<AppUser> _signinManager;
         public AccountController(UserManager<AppUser> userManager, ITokenService tokenService, IEmailService emailService
-, SignInManager<AppUser> signInManager, IAuthService authService)
+, SignInManager<AppUser> signInManager, IAuthService authService, IAccountRepository accountRepository)
         {
             _userManager = userManager;
             _tokenService = tokenService;
             _emailService = emailService;
             _signinManager = signInManager;
             _authService = authService;
+            _accountRepository = accountRepository;
         }
 
         [HttpPost("login")]
@@ -41,9 +44,9 @@ namespace api.Controllers
 
             var user = await _userManager.Users.FirstOrDefaultAsync(x => x.UserName == loginDto.Username.ToLower());
             if (user == null) return Unauthorized("Invalid username");
-             if (!user.EmailConfirmed) return Unauthorized("Please confirm your email before logging in");
+            if (!user.EmailConfirmed) return Unauthorized("Please confirm your email before logging in");
             var result = await _authService.LoginAsync(user, loginDto.Password);
-            if(result == null)return Unauthorized("Invalid username or password");
+            if (result == null) return Unauthorized("Invalid username or password");
             var userLogIn = new LoginResponseDto
             {
                 IsLogedIn = true,
@@ -165,6 +168,16 @@ namespace api.Controllers
                 return Ok(loginResult);
             }
             return Unauthorized();
+        }
+
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAccountAll()
+        {
+            var accounts = await _accountRepository.GetAllAsync();
+            if (accounts.Count() == 0)
+                return BadRequest("There are no accounts available to retrieve information from the server.");
+            var accountDto = accounts.Select(a => a.ToAccountDto());
+            return Ok(accountDto);
         }
     }
 }

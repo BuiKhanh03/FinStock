@@ -9,16 +9,28 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Cấu hình kết nối Redis
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var configuration = ConfigurationOptions.Parse("redis-15764.c1.us-central1-2.gce.redns.redis-cloud.com:15764");
+    configuration.Password = "XP73fzF0gMkL6ZWOgLDgT9DUfABfTpcT"; // Nếu có mật khẩu
+    configuration.AbortOnConnectFail = false; // Cho phép thử lại kết nối
+
+    return ConnectionMultiplexer.Connect(configuration);
+});
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAllOrigins", policy =>
     {
-        policy.AllowAnyOrigin()  // Cho phép tất cả các domain (có thể thay bằng một domain cụ thể)
+        policy.WithOrigins("http://localhost:3000")  // Cho phép tất cả các domain (có thể thay bằng một domain cụ thể)
               .AllowAnyMethod()// Cho phép tất cả các phương thức
-              .AllowAnyHeader();// Cho phép tất cả các header
+              .AllowAnyHeader()// Cho phép tất cả các header,
+               .AllowCredentials();
     });
 });
 
@@ -27,6 +39,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
+
 
 builder.Services.AddSwaggerGen(option =>
 {
@@ -102,6 +115,24 @@ builder.Services.AddAuthentication(options =>
 
         options.Events = new JwtBearerEvents
         {
+            // Xử lý khi có token trong query string
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+
+                // Kiểm tra xem request có phải là yêu cầu cho SignalR hub không
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hub"))
+                {
+                    // Đọc token từ query string
+                    context.Token = accessToken;
+                    Console.WriteLine("context.Token:" + context.Token);
+                }
+
+                return Task.CompletedTask;
+            },
+
+            // Xử lý khi xác thực token thất bại
             OnAuthenticationFailed = context =>
             {
                 if (context.Exception is SecurityTokenExpiredException)
@@ -110,6 +141,7 @@ builder.Services.AddAuthentication(options =>
                     context.Response.ContentType = "application/json";
                     return context.Response.WriteAsync("{\"message\": \"Token expired\"}");
                 }
+
                 context.Response.StatusCode = 401;
                 context.Response.ContentType = "application/json";
                 return context.Response.WriteAsync("{\"message\": \"Authentication failed\"}");
@@ -118,7 +150,7 @@ builder.Services.AddAuthentication(options =>
     }
 );
 
-
+builder.Services.AddSignalR();
 builder.Services.AddScoped<IStockRepository, StockRepository>();
 builder.Services.AddScoped<ICommentRepository, CommentRepository>();
 builder.Services.AddScoped<ITokenService, TokenService>();
@@ -127,6 +159,7 @@ builder.Services.AddScoped<IAuthService, AuthRepository>();
 builder.Services.AddScoped<IPortfolioRepository, PortRepository>();
 builder.Services.AddScoped<IVnPayService, PaymentService>();
 builder.Services.AddScoped<IMomoService, MomoService>();
+builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 
 var app = builder.Build();
 // Sử dụng Swagger chỉ trong môi trường phát triển
@@ -135,13 +168,17 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseDefaultFiles();
+app.UseStaticFiles();
 // Sử dụng middleware CORS
 app.UseRouting();
 app.UseCors("AllowAllOrigins");
 
-
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseWebSockets(); // Đảm bảo WebSocket được bật
+app.MapHub<ChatHub>("/hub");
 
 app.MapControllers();
 

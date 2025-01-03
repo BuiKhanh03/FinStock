@@ -47,7 +47,7 @@ namespace api.Services
                 orderInfo = model.OrderInfo,
                 requestId = model.OrderId,
                 extraData = "",
-                signature = signature
+                signature
             };
 
             request.AddParameter("application/json", JsonConvert.SerializeObject(requestData), ParameterType.RequestBody);

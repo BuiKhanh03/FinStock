@@ -94,6 +94,12 @@
               "target": "Package",
               "version": "[8.3.0, )"
             },
+            "Microsoft.TypeScript.MSBuild": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[5.7.1, )"
+            },
             "MimeKit": {
               "target": "Package",
               "version": "[4.9.0, )"
@@ -105,6 +111,10 @@
             "RestSharp": {
               "target": "Package",
               "version": "[112.1.1-alpha.0.4, )"
+            },
+            "StackExchange.Redis": {
+              "target": "Package",
+              "version": "[2.8.24, )"
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
